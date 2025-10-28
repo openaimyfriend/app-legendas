@@ -1,34 +1,97 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <title>Gerar Legenda (SRT)</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f2f2f2;
-            text-align: center;
-            margin-top: 100px;
-        }
-        form {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            display: inline-block;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        input[type=file], button {
-            margin-top: 15px;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <title>Gerador de Legendas SRT — @thecassio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#f5f5f7; margin:0; }
+    .wrap { max-width: 720px; margin: 64px auto; background:#fff; border-radius:16px; padding:28px 32px; box-shadow:0 8px 28px rgba(0,0,0,.08); }
+    h1 { font-size: 22px; margin:0 0 16px; display:flex; gap:10px; align-items: center; }
+    .brand { color:#6b7280; font-weight:600; font-size:14px; margin-left:auto }
+    .field { margin: 16px 0; }
+    .btn { cursor:pointer; background:#111827; color:#fff; border:0; padding:10px 16px; border-radius:10px; font-weight:600; }
+    .btn[disabled] { opacity:.5; cursor:not-allowed; }
+    .progress { height:12px; background:#e5e7eb; border-radius:999px; overflow:hidden; margin-top:12px; }
+    .bar { height:100%; width:0%; background:#111827; transition: width .25s ease; }
+    .status { margin-top:10px; color:#374151; font-size:14px; }
+    .footer { color:#9ca3af; text-align:center; margin-top:18px; font-size:12px; }
+  </style>
 </head>
 <body>
-    <h2>🎧 Gerador de Legendas SRT</h2>
-    <form action="/upload" method="post" enctype="multipart/form-data">
-        <p>Selecione um arquivo de áudio (.wav)</p>
-        <input type="file" name="file" accept=".wav" required>
-        <br>
-        <button type="submit">Gerar Legenda</button>
-    </form>
+  <div class="wrap">
+    <h1>🎧 Gerador de Legendas SRT <span class="brand">@thecassio</span></h1>
+
+    <div class="field">
+      <label>Selecione um arquivo de áudio (.wav)</label><br/>
+      <input id="file" type="file" accept=".wav"/>
+    </div>
+
+    <button class="btn" id="go">Gerar Legenda</button>
+
+    <div id="progArea" style="display:none">
+      <div class="progress"><div class="bar" id="bar"></div></div>
+      <div class="status" id="status">Iniciando…</div>
+    </div>
+
+    <div class="footer">O processamento acontece no servidor; você verá o progresso em tempo real.</div>
+  </div>
+
+  <script>
+    const btn = document.getElementById('go');
+    const file = document.getElementById('file');
+    const progArea = document.getElementById('progArea');
+    const bar = document.getElementById('bar');
+    const statusEl = document.getElementById('status');
+
+    function setPct(p){ bar.style.width = (p||0) + '%'; }
+    function setStatus(t){ statusEl.textContent = t; }
+
+    async function poll(jobId){
+      let done = false;
+      while(!done){
+        const res = await fetch(`/status/${jobId}`);
+        const data = await res.json();
+        if(data.error){ setStatus('Erro: ' + data.error); break; }
+        setPct(data.pct||0);
+        setStatus(`${data.status} — ${data.pct||0}%`);
+
+        if(data.status === 'Pronto' && data.pct >= 100){
+          setStatus('Concluído! Baixando arquivo…');
+          window.location.href = `/download/${jobId}`;
+          done = true;
+          btn.disabled = false;
+          break;
+        }
+        if((data.status||'').startsWith('Erro')){
+          btn.disabled = false;
+          break;
+        }
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
+
+    btn.addEventListener('click', async () => {
+      if(!file.files.length){ alert('Escolha um arquivo .wav'); return; }
+      btn.disabled = true;
+      progArea.style.display = 'block';
+      setPct(0);
+      setStatus('Enviando arquivo…');
+
+      const fd = new FormData();
+      fd.append('audio', file.files[0]);
+
+      try{
+        const res = await fetch('/start', { method:'POST', body: fd });
+        const data = await res.json();
+        if(data.error){ setStatus('Erro: ' + data.error); btn.disabled=false; return; }
+        setStatus('Processando…');
+        poll(data.job_id);
+      }catch(e){
+        setStatus('Erro de rede: ' + e);
+        btn.disabled = false;
+      }
+    });
+  </script>
 </body>
 </html>
