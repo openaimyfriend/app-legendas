@@ -3,4 +3,5 @@ faster-whisper
 soundfile
 waitress
 gunicorn
+requests
 
