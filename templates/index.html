@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Gerar Legenda (SRT)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            text-align: center;
+            margin-top: 100px;
+        }
+        form {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            display: inline-block;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        input[type=file], button {
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <h2>🎧 Gerador de Legendas SRT</h2>
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <p>Selecione um arquivo de áudio (.wav)</p>
+        <input type="file" name="file" accept=".wav" required>
+        <br>
+        <button type="submit">Gerar Legenda</button>
+    </form>
+</body>
+</html>
