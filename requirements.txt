@@ -2,3 +2,5 @@ flask
 faster-whisper
 soundfile
 waitress
+gunicorn
+
